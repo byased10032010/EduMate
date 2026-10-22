@@ -1,0 +1,145 @@
+/* ============================================
+   CUSTOM SELECT DROPDOWN — Minimalistic
+   ============================================ */
+.custom-select {
+    position: relative;
+}
+
+.custom-select__trigger {
+    width: 100%;
+    height: 46px;
+    padding: 0 40px 0 42px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.custom-select__trigger:hover {
+    border-color: var(--text-secondary);
+}
+
+.custom-select__trigger:focus {
+    outline: none;
+    border-color: var(--gradient-primary, #7c5cff);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--gradient-primary, #7c5cff) 12%, transparent);
+}
+
+.custom-select.open .custom-select__trigger {
+    border-color: var(--gradient-primary, #7c5cff);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--gradient-primary, #7c5cff) 12%, transparent);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.custom-select__trigger .field-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 15px;
+    color: var(--text-light);
+    pointer-events: none;
+}
+
+.custom-select__label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-select__label.placeholder {
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
+.custom-select__chevron {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--text-light);
+    transition: transform .25s ease;
+}
+
+.custom-select.open .custom-select__chevron {
+    transform: rotate(180deg);
+}
+
+/* ---- Options Panel ---- */
+.custom-select__options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    background: var(--bg-card);
+    border: 1.5px solid var(--gradient-primary, #7c5cff);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 12px 32px rgba(31, 17, 71, 0.14);
+    max-height: 200px;
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity .2s ease, transform .2s ease, visibility .2s;
+}
+
+.custom-select.open .custom-select__options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-select__options li {
+    padding: 10px 16px 10px 42px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background .15s ease;
+    position: relative;
+}
+
+.custom-select__options li:hover {
+    background: color-mix(in srgb, var(--gradient-primary, #7c5cff) 8%, transparent);
+}
+
+.custom-select__options li.selected {
+    color: var(--gradient-primary, #7c5cff);
+    font-weight: 600;
+}
+
+.custom-select__options li.selected::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c5cff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+/* Scrollbar */
+.custom-select__options::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-select__options::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-select__options::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}

@@ -1,0 +1,23 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies and local tooling
+/vendor/
+/node_modules/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local database exports and backups
+*.sql
+*.sql.gz
+*.bak
+!database.sql
+
+# Windows and editor files
+Thumbs.db
+.DS_Store
+.vscode/
