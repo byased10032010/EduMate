@@ -6,14 +6,92 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/dashboard.php';
+require_once __DIR__ . '/../includes/ai_functions.php';
 require_role('student');
 
 $user = current_user();
+$supportedModels = get_supported_ai_models();
+$defaultModelKey = get_default_ai_model();
 
 render_dashboard_header('AI Tutor', student_nav(), 'ai-tutor', ['AI Tutor'], 'AI Tutor');
 ?>
 
 <style>
+    /* AI Engine Banner */
+    .ai-engine-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.05) 100%);
+        border: 1px solid rgba(124, 92, 255, 0.22);
+        border-radius: 16px;
+        padding: 16px 22px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+    .ai-engine-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .ai-engine-icon-wrap {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        flex-shrink: 0;
+    }
+    .ai-engine-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .model-badge-chip {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(124, 92, 255, 0.18);
+        color: var(--violet, #7c5cff);
+        border: 1px solid rgba(124, 92, 255, 0.35);
+    }
+    .ai-engine-desc {
+        font-size: 13px;
+        color: var(--text-light);
+        margin-top: 2px;
+    }
+    .tutor-model-select {
+        padding: 10px 16px;
+        border-radius: 12px;
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 600;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 310px;
+        box-shadow: var(--shadow-xs);
+    }
+    .tutor-model-select:focus {
+        border-color: #7c5cff;
+        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
+    }
+
     .result-box {
         margin-top: 16px;
         background: var(--bg-secondary);
@@ -23,6 +101,7 @@ render_dashboard_header('AI Tutor', student_nav(), 'ai-tutor', ['AI Tutor'], 'AI
         display: none;
         font-size: 14px;
         line-height: 1.6;
+
         color: var(--text-primary);
     }
     .result-box.active { display: block; animation: fadeIn 0.4s ease; }
@@ -342,7 +421,34 @@ render_dashboard_header('AI Tutor', student_nav(), 'ai-tutor', ['AI Tutor'], 'AI
     }
 </style>
 
+<!-- AI Engine Model Selector Bar -->
+
+<div class="ai-engine-banner">
+    <div class="ai-engine-info">
+        <div class="ai-engine-icon-wrap">
+            <ion-icon name="sparkles"></ion-icon>
+        </div>
+        <div>
+            <div class="ai-engine-title">
+                AI Engine Model
+                <span id="active-model-badge" class="model-badge-chip">⚡ REASONING</span>
+            </div>
+            <div class="ai-engine-desc">Elevate your tutor with Google's next-generation reasoning, multimodal math analysis, and high-rigor Olympiad models.</div>
+        </div>
+    </div>
+    <div class="ai-engine-picker">
+        <select id="tutor-model-select" class="tutor-model-select" onchange="onModelChange(this.value)">
+            <?php foreach ($supportedModels as $mKey => $mInfo): ?>
+                <option value="<?php echo htmlspecialchars($mKey, ENT_QUOTES); ?>">
+                    <?php echo htmlspecialchars($mInfo['name'] . ' (' . $mInfo['tag'] . ')', ENT_QUOTES); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
+
 <div class="panel-grid">
+
     <!-- Doubt Solver Block -->
     <section class="panel">
         <h2 style="display: flex; align-items: center; gap: 8px;"><ion-icon name="chatbubble-outline" style="color: var(--gradient-info);"></ion-icon> Multimodal Doubt Solver</h2>
@@ -571,8 +677,38 @@ if (window.VoiceRecognitionEngine) {
     });
 }
 
+// AI Engine Model State & Switcher
+const supportedAiModels = <?php echo json_encode($supportedModels); ?>;
+const defaultAiModelKey = <?php echo json_encode($defaultModelKey); ?>;
+
+function getSelectedAiModel() {
+    const sel = document.getElementById('tutor-model-select');
+    if (sel && sel.value) return sel.value;
+    return localStorage.getItem('edumate_ai_model') || defaultAiModelKey;
+}
+
+function onModelChange(val) {
+    localStorage.setItem('edumate_ai_model', val);
+    const meta = supportedAiModels[val];
+    const badge = document.getElementById('active-model-badge');
+    if (badge && meta) {
+        badge.textContent = meta.badge;
+    }
+}
+
+// Restore saved AI Model selection on load
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('edumate_ai_model') || defaultAiModelKey;
+    const sel = document.getElementById('tutor-model-select');
+    if (sel) {
+        sel.value = saved;
+        onModelChange(saved);
+    }
+});
+
 async function apiCall(action, payload) {
     payload.action = action;
+    payload.model = getSelectedAiModel();
     try {
         const res = await fetch('../api/ai_tutor.php', {
             method: 'POST',
@@ -588,7 +724,9 @@ async function apiCall(action, payload) {
 function showLoading(elementId, text) {
     const el = document.getElementById(elementId);
     el.classList.add('active');
-    el.innerHTML = `<div class="loading-state"><ion-icon name="sync-outline" class="fa-spin"></ion-icon> ${text}</div>`;
+    const curModel = getSelectedAiModel();
+    const modelName = (supportedAiModels[curModel] && supportedAiModels[curModel].name) || 'Gemini AI';
+    el.innerHTML = `<div class="loading-state"><ion-icon name="sync-outline" class="fa-spin"></ion-icon> ${text} <span style="font-size:11px; opacity:0.8; margin-left:6px;">(${modelName})</span></div>`;
 }
 
 // 1. Doubt Solver
@@ -612,7 +750,15 @@ document.getElementById('ask-btn').addEventListener('click', async () => {
         box.innerHTML = `<span style="color:#ef4444;"><ion-icon name="warning-outline"></ion-icon> ${res.error}</span>`;
     } else {
         lastAnswerHTML = res.answer;
-        box.innerHTML = res.answer;
+        const usedModelKey = res.model || getSelectedAiModel();
+        const modelMeta = supportedAiModels[usedModelKey] || { name: usedModelKey, badge: 'AI' };
+        
+        box.innerHTML = res.answer + `
+            <div style="margin-top:16px; padding-top:10px; border-top:1px dashed var(--border-color); display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--text-light);">
+                <span><ion-icon name="sparkles" style="color:#7c5cff; vertical-align:middle;"></ion-icon> Answered by <strong>${modelMeta.name}</strong></span>
+                <span class="model-badge-chip" style="font-size:9px;">${modelMeta.badge}</span>
+            </div>
+        `;
     }
 });
 

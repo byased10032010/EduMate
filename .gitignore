@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+/auth/forgot_password.php
 
 # Dependencies and local tooling
 /vendor/

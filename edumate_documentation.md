@@ -551,25 +551,37 @@ The public-facing homepage includes:
 
 **Location**: [includes/ai_functions.php](file:///c:/xampp/htdocs/WEBPAGE/eduMate/includes/ai_functions.php)
 
-#### Gemini API Integration
+#### Gemini API Integration & Higher Models
 
 ```php
 function call_gemini_api(
     array $messages,
     ?string $systemPrompt = null,
-    string $model = 'gemini-2.5-flash'
+    ?string $model = null
 ): string
 ```
 
-**Model Fallback Chain**: `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.5-pro` → `gemini-2.0-flash-lite`
+**Supported Higher Models**:
+- `gemini-3.6-flash`: High-intelligence reasoning model with deep step-by-step logic (Recommended default).
+- `gemini-3.8-flash`: Cutting-edge next-generation flagship architecture with superior speed and comprehension.
+- `gemini-3.5-flash`: High-precision balanced model for assignments, essays, and thorough revision.
+- `gemini-3.1-pro-preview`: Pro-tier reasoning for competitive exams, Olympiad math, and advanced STEM.
+- `gemini-3-flash-preview`: Fast 3.0 multimodal reasoning model.
+- `gemini-2.5-flash`: Proven legacy standard workhorse fallback.
+
+**Intelligent Fallback Cascade**: If any model experiences a quota limit (HTTP 429), high demand surge (HTTP 503), or deprecation, the engine automatically cascades through higher models in sequence:
+`$requestedModel` → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-3-flash-preview` → `gemini-3.8-flash` → `gemini-3.1-pro-preview` → `gemini-2.5-flash`
 
 **Retry Logic**: 3 attempts with exponential backoff (1s, 2s delays) across all models
 
 **Configuration**:
+- Default Model: Set via `AI_MODEL` in `config/db.php` or `ai_model` in `config/site.json` (Admin Settings).
+- Real-time Selection: Dynamic in-app model pickers in AI Tutor and AI Flashcards with persistent `localStorage`.
 - Temperature: `0.2` (deterministic/factual responses)
 - Max output tokens: `8192`
 - SSL verify: disabled (development environment)
 - IPv4 forced resolution
+
 
 #### System Prompts
 

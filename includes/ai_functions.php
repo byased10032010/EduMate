@@ -43,24 +43,112 @@ HIGH ACADEMIC RIGOR & QUESTION STANDARD DIRECTIVES:
 7. Output MUST be formatted strictly as a JSON array of 15 objects with 'front' and 'back' keys inside a ```json ``` block.";
 
 /**
+ * Retrieve the list of supported higher Gemini models with detailed metadata.
+ *
+ * @return array<string, array{id: string, name: string, badge: string, tag: string, desc: string, recommended: bool}>
+ */
+function get_supported_ai_models(): array {
+    return [
+        'gemini-3.6-flash' => [
+            'id'          => 'gemini-3.6-flash',
+            'name'        => 'Gemini 3.6 Flash',
+            'badge'       => '⚡ REASONING',
+            'tag'         => 'Deep Reasoning & High Intelligence',
+            'desc'        => 'High-intelligence reasoning engine. Excellent for step-by-step math derivations, Olympiad flashcards, and multimodal science queries.',
+            'recommended' => true
+        ],
+        'gemini-3.8-flash' => [
+            'id'          => 'gemini-3.8-flash',
+            'name'        => 'Gemini 3.8 Flash',
+            'badge'       => '🚀 CUTTING-EDGE',
+            'tag'         => 'Latest Next-Gen Flagship Architecture',
+            'desc'        => 'Google\'s newest generative breakthrough with superior speed and comprehension.',
+            'recommended' => false
+        ],
+        'gemini-3.5-flash' => [
+            'id'          => 'gemini-3.5-flash',
+            'name'        => 'Gemini 3.5 Flash',
+            'badge'       => '🌟 BALANCED',
+            'tag'         => 'High Precision & Fast Throughput',
+            'desc'        => 'Well-rounded model for comprehensive revision, assignments, and essay critique.',
+            'recommended' => false
+        ],
+        'gemini-3.1-pro-preview' => [
+            'id'          => 'gemini-3.1-pro-preview',
+            'name'        => 'Gemini 3.1 Pro',
+            'badge'       => '🧠 PRO OLYMPIAD',
+            'tag'         => 'Deepest Academic Rigor & Logic',
+            'desc'        => 'Pro-tier reasoning for competitive exams, board paper setters, and advanced STEM problems.',
+            'recommended' => false
+        ],
+        'gemini-3-flash-preview' => [
+            'id'          => 'gemini-3-flash-preview',
+            'name'        => 'Gemini 3.0 Flash Preview',
+            'badge'       => '⚡ FAST',
+            'tag'         => 'Fast 3.0 Multimodal Reasoning',
+            'desc'        => 'Responsive next-generation model for interactive quizzes and instant timetables.',
+            'recommended' => false
+        ],
+        'gemini-2.5-flash' => [
+            'id'          => 'gemini-2.5-flash',
+            'name'        => 'Gemini 2.5 Flash',
+            'badge'       => '🛡️ STABLE',
+            'tag'         => 'Legacy High-Speed Standard',
+            'desc'        => 'Reliable fallback model for general queries and summaries.',
+            'recommended' => false
+        ]
+    ];
+}
+
+/**
+ * Get the currently configured default AI model for the platform.
+ */
+function get_default_ai_model(): string {
+    $cfgFile = __DIR__ . '/../config/site.json';
+    if (file_exists($cfgFile)) {
+        $cfg = json_decode((string)file_get_contents($cfgFile), true) ?: [];
+        if (!empty($cfg['ai_model'])) {
+            return (string)$cfg['ai_model'];
+        }
+    }
+    if (defined('AI_MODEL') && AI_MODEL !== '') {
+        return AI_MODEL;
+    }
+    return 'gemini-3.6-flash';
+}
+
+/**
  * Call the Gemini API with the given chat history and optional file attachment.
- * Upgraded to high-level gemini-2.5-pro model with automatic fallback.
+ * Supports higher-tier Gemini models (3.8 Flash, 3.6 Flash, 3.5 Flash, 3.1 Pro, etc.)
+ * with automatic fallback cascade.
  *
  * @param array $messages Array of message arrays: [['role' => 'user'|'model', 'parts' => [...]]]
  * @param string|null $systemPrompt Custom system prompt override
- * @param string $model Preferred high-level model identifier
+ * @param string|null $model Preferred higher model identifier
  * @return string The AI's response text.
  */
-function call_gemini_api(array $messages, ?string $systemPrompt = null, string $model = 'gemini-2.5-flash'): string {
+function call_gemini_api(array $messages, ?string $systemPrompt = null, ?string $model = null): string {
     $apiKey = defined('AI_API_KEY') ? AI_API_KEY : '';
     if (empty($apiKey) || $apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
         return "Error: Gemini API Key is not configured in config/db.php.";
     }
 
-    $modelsToTry = array_unique([$model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite']);
+    $preferredModel = (!empty($model)) ? trim($model) : get_default_ai_model();
+
+    // High-performance fallback cascade of higher Gemini models
+    $fallbackCascade = [
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.8-flash',
+        'gemini-3.1-pro-preview',
+        'gemini-2.5-flash'
+    ];
+
+    $modelsToTry = array_values(array_unique(array_merge([$preferredModel], $fallbackCascade)));
     $systemText = $systemPrompt !== null ? $systemPrompt : AI_SYSTEM_PROMPT;
 
-    // Retry loop across models with exponential backoff for HTTP 429 rate limits
+    // Retry loop across models with exponential backoff for HTTP 429/503 limits
     $lastError = '';
     for ($attempt = 1; $attempt <= 3; $attempt++) {
         foreach ($modelsToTry as $targetModel) {
@@ -88,8 +176,8 @@ function call_gemini_api(array $messages, ?string $systemPrompt = null, string $
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            
+            curl_setopt($ch, CURLOPT_TIMEOUT, 35);
+
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlErr = curl_error($ch);
@@ -97,13 +185,28 @@ function call_gemini_api(array $messages, ?string $systemPrompt = null, string $
 
             if ($response && $httpCode === 200) {
                 $responseData = json_decode($response, true);
-                if (isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                    return $responseData['candidates'][0]['content']['parts'][0]['text'];
+                if (!empty($responseData['candidates'][0]['content']['parts'])) {
+                    $parts = $responseData['candidates'][0]['content']['parts'];
+                    $textOutput = '';
+                    foreach ($parts as $p) {
+                        // Skip internal thought parts if present
+                        if (!empty($p['thought'])) {
+                            continue;
+                        }
+                        if (isset($p['text'])) {
+                            $textOutput .= $p['text'];
+                        }
+                    }
+                    if ($textOutput !== '') {
+                        return $textOutput;
+                    }
                 }
             }
 
             if ($httpCode === 429) {
                 $lastError = "Google AI Quota / Rate Limit (HTTP 429) on model '{$targetModel}'";
+            } elseif ($httpCode === 503) {
+                $lastError = "Google AI High Demand Spike (HTTP 503) on model '{$targetModel}'";
             } elseif ($httpCode !== 200) {
                 $lastError = "HTTP {$httpCode}: " . substr((string)$response, 0, 100);
             } elseif ($curlErr) {

@@ -466,13 +466,22 @@ render_dashboard_header(
 
     <!-- STEP 3: Flashcard Deck View -->
     <div id="view-deck" style="display:none;">
-        <div class="section-title-bar">
+        <div class="section-title-bar" style="flex-wrap:wrap; gap:12px;">
             <h2>
                 <button id="btn-back-to-chapters" class="btn btn-ghost btn-sm" style="margin-right:8px;"><ion-icon name="arrow-back-outline"></ion-icon> Chapters</button>
                 <span id="deck-chapter-title">Chapter Revision</span>
             </h2>
-            <button id="btn-regenerate-deck" class="btn btn-ghost btn-sm" style="color:var(--gradient-warning);"><ion-icon name="refresh-outline"></ion-icon> Regenerate AI Deck</button>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:6px; background:var(--bg-card); padding:5px 12px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow-xs);">
+                    <ion-icon name="hardware-chip-outline" style="color:var(--gradient-info); font-size:16px;"></ion-icon>
+                    <span style="font-size:12px; font-weight:600; color:var(--text-light);">AI Model:</span>
+                    <select id="flashcard-model-select" style="background:transparent; border:none; color:var(--text-primary); font-size:12px; font-weight:600; outline:none; cursor:pointer;" onchange="onFlashcardModelChange(this.value)">
+                    </select>
+                </div>
+                <button id="btn-regenerate-deck" class="btn btn-ghost btn-sm" style="color:var(--gradient-warning);"><ion-icon name="refresh-outline"></ion-icon> Regenerate Deck</button>
+            </div>
         </div>
+
 
         <!-- Progress Bar -->
         <div class="progress-bar-container">
@@ -587,11 +596,37 @@ render_dashboard_header(
         try {
             const res = await fetch('../api/ai_flashcards.php?action=get_curriculum');
             curriculumData = await res.json();
+            
+            // Populate AI Model Selector
+            populateModelSelector();
+            
             renderSubjects();
         } catch (e) {
             console.error('Failed to load curriculum', e);
         }
     }
+
+    function populateModelSelector() {
+        const sel = document.getElementById('flashcard-model-select');
+        if (!sel || !curriculumData.models) return;
+        
+        const saved = localStorage.getItem('edumate_ai_model') || curriculumData.defaultModel || 'gemini-3.6-flash';
+        sel.innerHTML = Object.entries(curriculumData.models).map(([key, info]) => `
+            <option value="${key}" ${key === saved ? 'selected' : ''}>
+                ${info.name} (${info.badge})
+            </option>
+        `).join('');
+    }
+
+    window.getSelectedFlashcardModel = function() {
+        const sel = document.getElementById('flashcard-model-select');
+        if (sel && sel.value) return sel.value;
+        return localStorage.getItem('edumate_ai_model') || (curriculumData && curriculumData.defaultModel) || 'gemini-3.6-flash';
+    };
+
+    window.onFlashcardModelChange = function(val) {
+        localStorage.setItem('edumate_ai_model', val);
+    };
 
     function renderSubjects() {
         const profileCurr = curriculumData.profileCurriculum || {};
@@ -672,8 +707,13 @@ render_dashboard_header(
         const sub = selectedSubject;
         const chap = selectedChapter;
 
+        const selectedModel = getSelectedFlashcardModel();
         deckStage.style.display = 'none';
         deckLoading.style.display = 'block';
+        const loadingP = deckLoading.querySelector('p');
+        if (loadingP) {
+            loadingP.textContent = `Curating high-rigor revision points and exam formulas using ${selectedModel}...`;
+        }
 
         try {
             const res = await fetch('../api/ai_flashcards.php', {
@@ -685,7 +725,8 @@ render_dashboard_header(
                     board: brd,
                     subject: sub,
                     chapter: chap,
-                    regenerate: regenerate
+                    regenerate: regenerate,
+                    model: selectedModel
                 })
             });
 

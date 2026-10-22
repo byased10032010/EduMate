@@ -246,9 +246,9 @@ function get_prescribed_curriculum(): array {
 
 
 /**
- * Generates 12-15 high-quality AI revision flashcards live via Generative AI (Gemini 2.5 Pro).
+ * Generates 12-15 high-quality AI revision flashcards live via Generative AI (Gemini Higher Models).
  */
-function generate_ai_flashcard_deck(PDO $pdo, int $class, string $board, string $subject, string $chapter, bool $forceRegenerate = false, int $uid = 0): array {
+function generate_ai_flashcard_deck(PDO $pdo, int $class, string $board, string $subject, string $chapter, bool $forceRegenerate = false, int $uid = 0, ?string $model = null): array {
     // 1. Delete old cards if forceRegenerate is true
     if ($forceRegenerate) {
         $del = $pdo->prepare('DELETE FROM ai_flashcards WHERE class = :cl AND board = :bo AND subject = :sub AND chapter_title = :chap');
@@ -256,8 +256,8 @@ function generate_ai_flashcard_deck(PDO $pdo, int $class, string $board, string 
     } else {
         // Check if cards already exist
         $stmt = $pdo->prepare('SELECT f.id, f.front, f.back, COALESCE(fp.status, "review") AS user_status 
-                               FROM ai_flashcards f
-                          LEFT JOIN ai_flashcard_progress fp ON fp.flashcard_id = f.id AND fp.user_id = :u
+                                FROM ai_flashcards f
+                           LEFT JOIN ai_flashcard_progress fp ON fp.flashcard_id = f.id AND fp.user_id = :u
                               WHERE f.class = :cl AND f.board = :bo AND f.subject = :sub AND f.chapter_title = :chap
                            ORDER BY f.id ASC');
         $stmt->execute([
@@ -304,7 +304,8 @@ Format EXACTLY as a JSON array wrapped in a code block:
 Do not output any conversational text before or after the JSON block.";
 
     $messages = [['role' => 'user', 'parts' => [['text' => $prompt]]]];
-    $aiRaw = call_gemini_api($messages, defined('AI_FLASHCARD_SYSTEM_PROMPT') ? AI_FLASHCARD_SYSTEM_PROMPT : null);
+    $aiRaw = call_gemini_api($messages, defined('AI_FLASHCARD_SYSTEM_PROMPT') ? AI_FLASHCARD_SYSTEM_PROMPT : null, $model);
+
 
     $jsonStr = '';
     if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/i', $aiRaw, $m)) {
@@ -389,7 +390,9 @@ try {
             'availableClasses' => [5, 6, 7, 8, 9, 10],
             'availableBoards' => ['CBSE', 'ICSE', 'State Board'],
             'profileCurriculum' => $profileCurriculum,
-            'fullCurriculum' => $curriculum
+            'fullCurriculum' => $curriculum,
+            'models' => get_supported_ai_models(),
+            'defaultModel' => get_default_ai_model()
         ]);
         exit;
     }
@@ -401,13 +404,18 @@ try {
         $subject = trim((string)($input['subject'] ?? ''));
         $chapter = trim((string)($input['chapter'] ?? ''));
         $forceRegenerate = !empty($input['regenerate']);
+        $model = !empty($input['model']) ? trim((string)$input['model']) : null;
 
         if ($subject === '' || $chapter === '') {
             throw new Exception('Subject and Chapter are required.');
         }
 
-        $cards = generate_ai_flashcard_deck($pdo, $class, $board, $subject, $chapter, $forceRegenerate, $uid);
-        echo json_encode(['status' => 'success', 'cards' => $cards]);
+        $cards = generate_ai_flashcard_deck($pdo, $class, $board, $subject, $chapter, $forceRegenerate, $uid, $model);
+        echo json_encode([
+            'status' => 'success',
+            'cards'  => $cards,
+            'model'  => $model ?: get_default_ai_model()
+        ]);
         exit;
     }
 

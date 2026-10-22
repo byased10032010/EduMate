@@ -15,8 +15,10 @@ $classContext = "IMPORTANT CONTEXT: The student you are tutoring is in Class/Gra
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $input['action'] ?? '';
+$model = !empty($input['model']) ? trim((string)$input['model']) : null;
 
 $pdo = db();
+
 
 // Ensure tables exist (basic migration)
 $pdo->exec("CREATE TABLE IF NOT EXISTS ai_doubts (
@@ -47,6 +49,15 @@ try {
 } catch (Throwable $e) {}
 
 try {
+    if ($action === 'get_models') {
+        echo json_encode([
+            'status'  => 'success',
+            'models'  => get_supported_ai_models(),
+            'default' => get_default_ai_model()
+        ]);
+        exit;
+    }
+
     if ($action === 'ask') {
         $q = trim((string)($input['question'] ?? ''));
         if ($q === '') throw new Exception('Empty question');
@@ -70,10 +81,14 @@ try {
             ['role' => 'user', 'parts' => $parts]
         ];
         
-        $answer = call_gemini_api($messages);
+        $answer = call_gemini_api($messages, null, $model);
         $answerHtml = parse_markdown_to_html($answer);
         
-        echo json_encode(['answer' => $answerHtml, 'raw' => $answer]);
+        echo json_encode([
+            'answer' => $answerHtml,
+            'raw'    => $answer,
+            'model'  => $model ?: get_default_ai_model()
+        ]);
         exit;
     }
 
@@ -95,12 +110,16 @@ try {
         $prompt = $classContext . "Create a comprehensive assignment titled '{$title}'. Context: {$desc}. Courses: {$courses}. Include clear instructions, 3-5 thought-provoking questions, and grading criteria. Format nicely in Markdown.";
         $messages = [['role' => 'user', 'parts' => [['text' => $prompt]]]];
         
-        $content = call_gemini_api($messages);
+        $content = call_gemini_api($messages, null, $model);
         $contentHtml = parse_markdown_to_html($content);
 
         $stmt = $pdo->prepare('INSERT INTO ai_assignments (user_id, title, description, content) VALUES (:u, :t, :d, :c)');
         $stmt->execute([':u' => $uid, ':t' => $title, ':d' => $desc, ':c' => $content]);
-        echo json_encode(['assignment' => $contentHtml, 'id' => (int)$pdo->lastInsertId()]);
+        echo json_encode([
+            'assignment' => $contentHtml,
+            'id' => (int)$pdo->lastInsertId(),
+            'model' => $model ?: get_default_ai_model()
+        ]);
         exit;
     }
 
@@ -111,10 +130,14 @@ try {
         $prompt = $classContext . "Generate a weekly study timetable for a student enrolled in: {$courses}. Create a beautifully formatted Markdown table with columns: Day, Morning, Afternoon, Evening. Do not include extra conversational text, just the Markdown table.";
         $messages = [['role' => 'user', 'parts' => [['text' => $prompt]]]];
         
-        $markdown = call_gemini_api($messages);
+        $markdown = call_gemini_api($messages, null, $model);
         $html = parse_markdown_to_html($markdown);
 
-        echo json_encode(['html' => $html, 'markdown' => $markdown]);
+        echo json_encode([
+            'html' => $html,
+            'markdown' => $markdown,
+            'model' => $model ?: get_default_ai_model()
+        ]);
         exit;
     }
     
@@ -129,7 +152,7 @@ try {
         ```";
         
         $messages = [['role' => 'user', 'parts' => [['text' => $prompt]]]];
-        $answer = call_gemini_api($messages);
+        $answer = call_gemini_api($messages, null, $model);
         
         $jsonStr = '';
         if (preg_match('/```(?:json-quiz|json)?\s*([\s\S]*?)\s*```/i', $answer, $matches)) {
@@ -167,7 +190,11 @@ try {
                     $quizData[$idx]['db_id'] = (int)$pdo->lastInsertId();
                 }
                 
-                echo json_encode(['quiz_id' => $quizId, 'data' => $quizData]);
+                echo json_encode([
+                    'quiz_id' => $quizId,
+                    'data' => $quizData,
+                    'model' => $model ?: get_default_ai_model()
+                ]);
                 exit;
             }
         throw new Exception("AI failed to return the correct quiz format. Debug Info: \n" . $answer);
@@ -180,10 +207,13 @@ try {
         $prompt = $classContext . "Summarize the following lecture notes/text concisely. Provide 3 key takeaways and recommend 2 topics for further reading: \n\n" . $text;
         $messages = [['role' => 'user', 'parts' => [['text' => $prompt]]]];
         
-        $summary = call_gemini_api($messages);
+        $summary = call_gemini_api($messages, null, $model);
         $summaryHtml = parse_markdown_to_html($summary);
         
-        echo json_encode(['summary' => $summaryHtml]);
+        echo json_encode([
+            'summary' => $summaryHtml,
+            'model' => $model ?: get_default_ai_model()
+        ]);
         exit;
     }
     

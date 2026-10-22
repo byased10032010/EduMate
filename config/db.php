@@ -20,6 +20,10 @@ const DB_PASS = '';
 // Gemini API Key for the AI Tutor
 const AI_API_KEY = 'AQ.Ab8RN6IUO-C6NbTONEYx1FMXbvSNT943ZBTeT3sFRNdUGRZrCg'; // Replace with actual key
 
+// Default higher Gemini model (gemini-3.8-flash, gemini-3.6-flash, gemini-3.5-flash, gemini-3.1-pro-preview, gemini-2.5-flash)
+const AI_MODEL = 'gemini-3.6-flash';
+
+
 function db(): PDO
 {
     static $pdo = null;
