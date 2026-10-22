@@ -73,23 +73,422 @@ render_dashboard_header('AI Tutor', student_nav(), 'ai-tutor', ['AI Tutor'], 'AI
         color: var(--text-light);
         margin-top: 2px;
     }
-    .tutor-model-select {
-        padding: 10px 16px;
-        border-radius: 12px;
+    /* Hidden select for compatibility */
+    .visually-hidden-select {
+        position: absolute !important;
+        opacity: 0 !important;
+        width: 1px !important;
+        height: 1px !important;
+        margin: -1px !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        border: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Template-Blended AI Model Dropdown */
+    .ai-engine-picker {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .ai-model-dropdown {
+        position: relative;
+        min-width: 330px;
+        user-select: none;
+    }
+
+    .ai-model-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 14px 9px 10px;
+        border-radius: 14px;
         background: var(--bg-card);
         border: 1.5px solid var(--border-color);
         color: var(--text-primary);
-        font-size: 13px;
-        font-weight: 600;
-        outline: none;
         cursor: pointer;
-        transition: all 0.2s ease;
-        min-width: 310px;
+        outline: none;
         box-shadow: var(--shadow-xs);
+        transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: left;
+        font-family: inherit;
     }
-    .tutor-model-select:focus {
-        border-color: #7c5cff;
-        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
+
+    .ai-model-trigger:hover {
+        border-color: rgba(124, 92, 255, 0.45);
+        box-shadow: 0 4px 18px rgba(124, 92, 255, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .ai-model-dropdown.open .ai-model-trigger,
+    .ai-model-trigger:focus-visible {
+        border-color: var(--gradient-primary, #7c5cff);
+        box-shadow: 0 0 0 3.5px rgba(124, 92, 255, 0.2), 0 6px 20px rgba(124, 92, 255, 0.14);
+    }
+
+    .ai-model-trigger-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ai-model-trigger-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(124, 92, 255, 0.16) 0%, rgba(236, 72, 153, 0.14) 100%);
+        border: 1px solid rgba(124, 92, 255, 0.25);
+        color: var(--gradient-primary, #7c5cff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+    }
+
+    .ai-model-trigger:hover .ai-model-trigger-icon {
+        transform: scale(1.05);
+    }
+
+    .ai-model-trigger-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ai-model-trigger-headline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.25;
+    }
+
+    .ai-model-trigger-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ai-model-trigger-badge {
+        font-size: 9px;
+        padding: 2px 7px;
+        flex-shrink: 0;
+    }
+
+    .ai-model-trigger-tag {
+        font-size: 11px;
+        color: var(--text-light);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 1px;
+    }
+
+    .ai-model-trigger-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .ai-model-trigger-chevron {
+        font-size: 16px;
+        color: var(--text-light);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+    }
+
+    .ai-model-dropdown.open .ai-model-trigger-chevron {
+        transform: rotate(180deg);
+        color: var(--gradient-primary, #7c5cff);
+    }
+
+    /* Dropdown Menu List */
+    .ai-model-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 380px;
+        max-width: 440px;
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1.5px solid rgba(124, 92, 255, 0.28);
+        border-radius: 18px;
+        padding: 10px;
+        box-shadow: 0 20px 48px rgba(31, 17, 71, 0.18), 0 2px 6px rgba(124, 92, 255, 0.08);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px) scale(0.98);
+        pointer-events: none;
+        transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s;
+    }
+
+    .ai-model-dropdown.open .ai-model-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+
+    .ai-model-menu-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 8px;
+    }
+
+    .ai-model-menu-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ai-model-menu-title ion-icon {
+        color: var(--gradient-primary, #7c5cff);
+        font-size: 14px;
+    }
+
+    .ai-model-menu-count {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(124, 92, 255, 0.12);
+        color: var(--gradient-primary, #7c5cff);
+        border: 1px solid rgba(124, 92, 255, 0.2);
+    }
+
+    .ai-model-options-list {
+        max-height: 380px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 2px 4px 2px 0;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(124, 92, 255, 0.25) transparent;
+    }
+
+    .ai-model-options-list::-webkit-scrollbar {
+        width: 5px;
+    }
+    .ai-model-options-list::-webkit-scrollbar-thumb {
+        background: rgba(124, 92, 255, 0.25);
+        border-radius: 10px;
+    }
+
+    .ai-model-option-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 13px;
+        border: 1.5px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        outline: none;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .ai-model-option-card:hover,
+    .ai-model-option-card:focus-visible {
+        background: color-mix(in srgb, var(--gradient-primary, #7c5cff) 9%, transparent);
+        border-color: rgba(124, 92, 255, 0.28);
+        transform: translateX(3px);
+    }
+
+    .ai-model-option-card.is-selected {
+        background: linear-gradient(135deg, rgba(124, 92, 255, 0.13) 0%, rgba(168, 85, 247, 0.08) 100%);
+        border-color: rgba(124, 92, 255, 0.45);
+        box-shadow: 0 4px 14px rgba(124, 92, 255, 0.08);
+    }
+
+    .ai-model-option-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: rgba(124, 92, 255, 0.1);
+        color: var(--gradient-primary, #7c5cff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        border: 1px solid rgba(124, 92, 255, 0.18);
+        transition: transform 0.2s ease;
+    }
+
+    .ai-model-option-card:hover .ai-model-option-icon,
+    .ai-model-option-card.is-selected .ai-model-option-icon {
+        transform: scale(1.08);
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .ai-model-option-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ai-model-option-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 2px;
+    }
+
+    .ai-model-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ai-model-option-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .ai-model-chip-rec {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        padding: 2px 7px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .ai-model-option-tagline {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--gradient-primary, #7c5cff);
+        margin-bottom: 2px;
+        line-height: 1.3;
+    }
+
+    .ai-model-option-desc {
+        font-size: 11px;
+        color: var(--text-light);
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .ai-model-option-check {
+        font-size: 18px;
+        color: var(--gradient-primary, #7c5cff);
+        opacity: 0;
+        transform: scale(0.6);
+        transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        flex-shrink: 0;
+        align-self: center;
+        margin-left: 4px;
+    }
+
+    .ai-model-option-card.is-selected .ai-model-option-check {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .ai-model-menu-footer {
+        padding: 9px 12px 4px 12px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 6px;
+        font-size: 10.5px;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ai-model-menu-footer ion-icon {
+        color: var(--gradient-warning, #ffc83d);
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    /* Dark Mode Theme Blending */
+    html[data-theme="dark"] .ai-model-trigger {
+        background: rgba(38, 19, 72, 0.7);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    html[data-theme="dark"] .ai-model-trigger:hover {
+        background: rgba(46, 24, 84, 0.95);
+        border-color: rgba(124, 92, 255, 0.6);
+        box-shadow: 0 6px 24px rgba(124, 92, 255, 0.25);
+    }
+
+    html[data-theme="dark"] .ai-model-menu {
+        background: rgba(26, 11, 54, 0.96);
+        border-color: rgba(124, 92, 255, 0.4);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 1px rgba(124, 92, 255, 0.5);
+    }
+
+    html[data-theme="dark"] .ai-model-option-card:hover,
+    html[data-theme="dark"] .ai-model-option-card:focus-visible {
+        background: rgba(124, 92, 255, 0.18);
+        border-color: rgba(168, 85, 247, 0.35);
+    }
+
+    html[data-theme="dark"] .ai-model-option-card.is-selected {
+        background: linear-gradient(135deg, rgba(124, 92, 255, 0.28) 0%, rgba(168, 85, 247, 0.18) 100%);
+        border-color: rgba(168, 85, 247, 0.5);
+    }
+
+    @media (max-width: 768px) {
+        .ai-engine-banner {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 16px;
+        }
+        .ai-engine-picker {
+            width: 100%;
+        }
+        .ai-model-dropdown {
+            width: 100%;
+            min-width: 0;
+        }
+        .ai-model-menu {
+            min-width: 100%;
+            max-width: 100%;
+            right: 0;
+            left: 0;
+        }
     }
 
     .result-box {
@@ -437,13 +836,84 @@ render_dashboard_header('AI Tutor', student_nav(), 'ai-tutor', ['AI Tutor'], 'AI
         </div>
     </div>
     <div class="ai-engine-picker">
-        <select id="tutor-model-select" class="tutor-model-select" onchange="onModelChange(this.value)">
+        <!-- Native select kept hidden for compatibility with existing scripts and APIs -->
+        <select id="tutor-model-select" class="visually-hidden-select" onchange="onModelChange(this.value)" tabindex="-1" aria-hidden="true">
             <?php foreach ($supportedModels as $mKey => $mInfo): ?>
                 <option value="<?php echo htmlspecialchars($mKey, ENT_QUOTES); ?>">
                     <?php echo htmlspecialchars($mInfo['name'] . ' (' . $mInfo['tag'] . ')', ENT_QUOTES); ?>
                 </option>
             <?php endforeach; ?>
         </select>
+
+        <!-- Template-Blended Custom AI Model Selector Dropdown -->
+        <div class="ai-model-dropdown" id="ai-model-dropdown">
+            <button type="button" class="ai-model-trigger" id="ai-model-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Select AI Engine Model">
+                <div class="ai-model-trigger-left">
+                    <div class="ai-model-trigger-icon" id="ai-model-trigger-icon">
+                        <ion-icon name="sparkles"></ion-icon>
+                    </div>
+                    <div class="ai-model-trigger-text">
+                        <div class="ai-model-trigger-headline">
+                            <span class="ai-model-trigger-name" id="ai-model-selected-name">Gemini 3.6 Flash</span>
+                            <span class="model-badge-chip ai-model-trigger-badge" id="ai-model-trigger-badge">⚡ REASONING</span>
+                        </div>
+                        <span class="ai-model-trigger-tag" id="ai-model-selected-tag">Deep Reasoning & High Intelligence</span>
+                    </div>
+                </div>
+                <div class="ai-model-trigger-right">
+                    <ion-icon name="chevron-down-outline" class="ai-model-trigger-chevron"></ion-icon>
+                </div>
+            </button>
+
+            <div class="ai-model-menu" id="ai-model-menu" role="listbox" aria-label="Available AI Engines">
+                <div class="ai-model-menu-header">
+                    <span class="ai-model-menu-title"><ion-icon name="hardware-chip-outline"></ion-icon> Available AI Engines</span>
+                    <span class="ai-model-menu-count"><?php echo count($supportedModels); ?> Models</span>
+                </div>
+                <div class="ai-model-options-list" id="ai-model-options-list">
+                    <?php foreach ($supportedModels as $mKey => $mInfo): 
+                        $icon = 'sparkles';
+                        if (strpos($mKey, '3.8') !== false) $icon = 'rocket';
+                        elseif (strpos($mKey, '3.1') !== false) $icon = 'school';
+                        elseif (strpos($mKey, '3.5') !== false) $icon = 'bulb';
+                        elseif (strpos($mKey, 'preview') !== false) $icon = 'flash';
+                        elseif (strpos($mKey, '2.5') !== false) $icon = 'shield-checkmark';
+                    ?>
+                        <div class="ai-model-option-card <?php echo !empty($mInfo['recommended']) ? 'is-recommended-card' : ''; ?>" 
+                             role="option" 
+                             data-model-id="<?php echo htmlspecialchars($mKey, ENT_QUOTES); ?>"
+                             data-model-name="<?php echo htmlspecialchars($mInfo['name'], ENT_QUOTES); ?>"
+                             data-model-tag="<?php echo htmlspecialchars($mInfo['tag'], ENT_QUOTES); ?>"
+                             data-model-badge="<?php echo htmlspecialchars($mInfo['badge'], ENT_QUOTES); ?>"
+                             data-model-icon="<?php echo $icon; ?>"
+                             tabindex="0">
+                            <div class="ai-model-option-icon">
+                                <ion-icon name="<?php echo $icon; ?>-outline"></ion-icon>
+                            </div>
+                            <div class="ai-model-option-content">
+                                <div class="ai-model-option-top">
+                                    <div class="ai-model-title-wrap">
+                                        <span class="ai-model-option-title"><?php echo htmlspecialchars($mInfo['name'], ENT_QUOTES); ?></span>
+                                        <?php if (!empty($mInfo['recommended'])): ?>
+                                            <span class="ai-model-chip-rec"><ion-icon name="star"></ion-icon> RECOMMENDED</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <span class="model-badge-chip"><?php echo htmlspecialchars($mInfo['badge'], ENT_QUOTES); ?></span>
+                                </div>
+                                <div class="ai-model-option-tagline"><?php echo htmlspecialchars($mInfo['tag'], ENT_QUOTES); ?></div>
+                                <div class="ai-model-option-desc"><?php echo htmlspecialchars($mInfo['desc'], ENT_QUOTES); ?></div>
+                            </div>
+                            <div class="ai-model-option-check">
+                                <ion-icon name="checkmark-circle"></ion-icon>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="ai-model-menu-footer">
+                    <ion-icon name="flash-outline"></ion-icon> Real-time engine switching across doubt solving, quizzes & summaries.
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -687,23 +1157,136 @@ function getSelectedAiModel() {
     return localStorage.getItem('edumate_ai_model') || defaultAiModelKey;
 }
 
+function getModelIcon(key) {
+    if (!key) return 'sparkles';
+    if (key.includes('3.8')) return 'rocket';
+    if (key.includes('3.1')) return 'school';
+    if (key.includes('3.6')) return 'sparkles';
+    if (key.includes('3.5')) return 'bulb';
+    if (key.includes('preview')) return 'flash';
+    if (key.includes('2.5')) return 'shield-checkmark';
+    return 'hardware-chip';
+}
+
 function onModelChange(val) {
+    if (!supportedAiModels[val]) {
+        val = defaultAiModelKey;
+    }
     localStorage.setItem('edumate_ai_model', val);
     const meta = supportedAiModels[val];
     const badge = document.getElementById('active-model-badge');
     if (badge && meta) {
         badge.textContent = meta.badge;
     }
+
+    // Keep hidden select in sync
+    const sel = document.getElementById('tutor-model-select');
+    if (sel && sel.value !== val) {
+        sel.value = val;
+    }
+
+    // Update custom dropdown trigger
+    const nameEl = document.getElementById('ai-model-selected-name');
+    const tagEl = document.getElementById('ai-model-selected-tag');
+    const triggerBadge = document.getElementById('ai-model-trigger-badge');
+    const triggerIconWrap = document.getElementById('ai-model-trigger-icon');
+
+    if (nameEl && meta) nameEl.textContent = meta.name;
+    if (tagEl && meta) tagEl.textContent = meta.tag;
+    if (triggerBadge && meta) triggerBadge.textContent = meta.badge;
+    if (triggerIconWrap) {
+        const iconName = getModelIcon(val);
+        triggerIconWrap.innerHTML = `<ion-icon name="${iconName}"></ion-icon>`;
+    }
+
+    // Update selected states in option cards
+    document.querySelectorAll('.ai-model-option-card').forEach(card => {
+        const isMatch = card.getAttribute('data-model-id') === val;
+        card.classList.toggle('is-selected', isMatch);
+        card.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+}
+
+function setupAiModelDropdown() {
+    const dropdown = document.getElementById('ai-model-dropdown');
+    const trigger = document.getElementById('ai-model-trigger');
+    const menu = document.getElementById('ai-model-menu');
+    if (!dropdown || !trigger || !menu) return;
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (isOpen) {
+            const selected = menu.querySelector('.ai-model-option-card.is-selected');
+            if (selected) {
+                selected.scrollIntoView({ block: 'nearest' });
+                selected.focus();
+            }
+        }
+    });
+
+    // Select option
+    menu.querySelectorAll('.ai-model-option-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const modelId = card.getAttribute('data-model-id');
+            if (modelId) {
+                onModelChange(modelId);
+            }
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        });
+
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+
+    // Keyboard navigation
+    dropdown.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            if (!dropdown.classList.contains('open')) {
+                dropdown.classList.add('open');
+                trigger.setAttribute('aria-expanded', 'true');
+            }
+            const cards = Array.from(menu.querySelectorAll('.ai-model-option-card'));
+            const activeIdx = cards.indexOf(document.activeElement);
+            let nextIdx = 0;
+            if (e.key === 'ArrowDown') {
+                nextIdx = (activeIdx + 1) % cards.length;
+            } else {
+                nextIdx = (activeIdx - 1 + cards.length) % cards.length;
+            }
+            if (cards[nextIdx]) {
+                cards[nextIdx].focus();
+            }
+            e.preventDefault();
+        }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
 }
 
 // Restore saved AI Model selection on load
 document.addEventListener('DOMContentLoaded', () => {
+    setupAiModelDropdown();
     const saved = localStorage.getItem('edumate_ai_model') || defaultAiModelKey;
-    const sel = document.getElementById('tutor-model-select');
-    if (sel) {
-        sel.value = saved;
-        onModelChange(saved);
-    }
+    onModelChange(saved);
 });
 
 async function apiCall(action, payload) {

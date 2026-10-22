@@ -438,6 +438,95 @@ render_dashboard_header(
         color: var(--text-primary);
     }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Flashcard Custom AI Model Dropdown */
+    .flashcard-model-dropdown {
+        position: relative;
+        display: inline-block;
+        user-select: none;
+    }
+    .flashcard-model-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        padding: 6px 14px;
+        border-radius: 12px;
+        border: 1.5px solid var(--border-color);
+        box-shadow: var(--shadow-xs);
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        outline: none;
+    }
+    .flashcard-model-trigger:hover {
+        border-color: rgba(124, 92, 255, 0.45);
+        box-shadow: 0 4px 14px rgba(124, 92, 255, 0.12);
+        transform: translateY(-1px);
+    }
+    .flashcard-model-dropdown.open .flashcard-model-trigger {
+        border-color: var(--gradient-primary, #7c5cff);
+        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
+    }
+    .model-badge-chip {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(124, 92, 255, 0.18);
+        color: var(--violet, #7c5cff);
+        border: 1px solid rgba(124, 92, 255, 0.35);
+    }
+    .flashcard-chevron {
+        font-size: 14px;
+        color: var(--text-light);
+        transition: transform 0.2s ease;
+    }
+    .flashcard-model-dropdown.open .flashcard-chevron {
+        transform: rotate(180deg);
+        color: var(--gradient-primary, #7c5cff);
+    }
+    .flashcard-model-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        min-width: 320px;
+        background: var(--bg-card);
+        border: 1.5px solid rgba(124, 92, 255, 0.28);
+        border-radius: 16px;
+        padding: 8px;
+        box-shadow: 0 16px 40px rgba(31, 17, 71, 0.18);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-6px) scale(0.98);
+        pointer-events: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .flashcard-model-dropdown.open .flashcard-model-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+    .flashcard-model-item:hover {
+        background: color-mix(in srgb, var(--gradient-primary, #7c5cff) 10%, transparent) !important;
+        transform: translateX(2px);
+    }
+    html[data-theme="dark"] .flashcard-model-trigger {
+        background: rgba(38, 19, 72, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+    html[data-theme="dark"] .flashcard-model-menu {
+        background: rgba(26, 11, 54, 0.96);
+        border-color: rgba(124, 92, 255, 0.4);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
 </style>
 
 <!-- Container Views -->
@@ -472,11 +561,23 @@ render_dashboard_header(
                 <span id="deck-chapter-title">Chapter Revision</span>
             </h2>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:6px; background:var(--bg-card); padding:5px 12px; border-radius:12px; border:1px solid var(--border-color); box-shadow:var(--shadow-xs);">
-                    <ion-icon name="hardware-chip-outline" style="color:var(--gradient-info); font-size:16px;"></ion-icon>
-                    <span style="font-size:12px; font-weight:600; color:var(--text-light);">AI Model:</span>
-                    <select id="flashcard-model-select" style="background:transparent; border:none; color:var(--text-primary); font-size:12px; font-weight:600; outline:none; cursor:pointer;" onchange="onFlashcardModelChange(this.value)">
+                <div class="flashcard-model-dropdown" id="flashcard-model-dropdown">
+                    <button type="button" class="flashcard-model-trigger" id="flashcard-model-trigger" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFlashcardModelDropdown(event)">
+                        <ion-icon name="hardware-chip-outline" style="color:var(--gradient-info); font-size:16px;"></ion-icon>
+                        <span style="font-size:12px; font-weight:600; color:var(--text-light);">AI Model:</span>
+                        <span id="flashcard-model-name-display" style="font-size:12px; font-weight:700; color:var(--text-primary);">Gemini 3.6 Flash</span>
+                        <span id="flashcard-model-badge-display" class="model-badge-chip">⚡ REASONING</span>
+                        <ion-icon name="chevron-down-outline" class="flashcard-chevron"></ion-icon>
+                    </button>
+                    <select id="flashcard-model-select" style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;" onchange="onFlashcardModelChange(this.value)">
                     </select>
+                    <div class="flashcard-model-menu" id="flashcard-model-menu" role="listbox">
+                        <div style="font-size:10px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:0.6px; padding:6px 10px 8px; border-bottom:1px solid var(--border-color); margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                            <span>Available AI Engines</span>
+                            <ion-icon name="sparkles" style="color:var(--gradient-primary);"></ion-icon>
+                        </div>
+                        <div id="flashcard-model-menu-list" style="display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto;"></div>
+                    </div>
                 </div>
                 <button id="btn-regenerate-deck" class="btn btn-ghost btn-sm" style="color:var(--gradient-warning);"><ion-icon name="refresh-outline"></ion-icon> Regenerate Deck</button>
             </div>
@@ -606,16 +707,80 @@ render_dashboard_header(
         }
     }
 
+    function toggleFlashcardModelDropdown(e) {
+        if (e) e.stopPropagation();
+        const dropdown = document.getElementById('flashcard-model-dropdown');
+        if (dropdown) dropdown.classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('flashcard-model-dropdown');
+        if (dropdown && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+        }
+    });
+
+    function updateFlashcardModelTrigger(val) {
+        if (!curriculumData || !curriculumData.models) return;
+        const info = curriculumData.models[val] || { name: val, badge: 'AI' };
+        const nameEl = document.getElementById('flashcard-model-name-display');
+        const badgeEl = document.getElementById('flashcard-model-badge-display');
+        if (nameEl) nameEl.textContent = info.name;
+        if (badgeEl) badgeEl.textContent = info.badge;
+
+        const sel = document.getElementById('flashcard-model-select');
+        if (sel && sel.value !== val) sel.value = val;
+
+        const list = document.getElementById('flashcard-model-menu-list');
+        if (list) {
+            list.querySelectorAll('.flashcard-model-item').forEach(el => {
+                const isSelected = el.getAttribute('data-model') === val;
+                el.classList.toggle('is-selected', isSelected);
+                el.style.background = isSelected ? 'rgba(124,92,255,0.12)' : '';
+            });
+        }
+    }
+
     function populateModelSelector() {
         const sel = document.getElementById('flashcard-model-select');
-        if (!sel || !curriculumData.models) return;
+        const list = document.getElementById('flashcard-model-menu-list');
+        if (!curriculumData.models) return;
         
         const saved = localStorage.getItem('edumate_ai_model') || curriculumData.defaultModel || 'gemini-3.6-flash';
-        sel.innerHTML = Object.entries(curriculumData.models).map(([key, info]) => `
-            <option value="${key}" ${key === saved ? 'selected' : ''}>
-                ${info.name} (${info.badge})
-            </option>
-        `).join('');
+        if (sel) {
+            sel.innerHTML = Object.entries(curriculumData.models).map(([key, info]) => `
+                <option value="${key}" ${key === saved ? 'selected' : ''}>
+                    ${info.name} (${info.badge})
+                </option>
+            `).join('');
+            sel.value = saved;
+        }
+
+        updateFlashcardModelTrigger(saved);
+
+        if (list) {
+            list.innerHTML = Object.entries(curriculumData.models).map(([key, info]) => `
+                <div class="flashcard-model-item ${key === saved ? 'is-selected' : ''}" data-model="${key}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; transition:all 0.15s ease; ${key === saved ? 'background:rgba(124,92,255,0.12); font-weight:600;' : ''}">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <ion-icon name="sparkles" style="color:var(--gradient-primary); font-size:14px;"></ion-icon>
+                        <span style="font-size:12.5px; color:var(--text-primary);">${info.name}</span>
+                    </div>
+                    <span class="model-badge-chip" style="font-size:9px; padding:2px 6px;">${info.badge}</span>
+                </div>
+            `).join('');
+
+            list.querySelectorAll('.flashcard-model-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const m = item.getAttribute('data-model');
+                    if (m) {
+                        onFlashcardModelChange(m);
+                    }
+                    const dropdown = document.getElementById('flashcard-model-dropdown');
+                    if (dropdown) dropdown.classList.remove('open');
+                });
+            });
+        }
     }
 
     window.getSelectedFlashcardModel = function() {
@@ -626,6 +791,7 @@ render_dashboard_header(
 
     window.onFlashcardModelChange = function(val) {
         localStorage.setItem('edumate_ai_model', val);
+        updateFlashcardModelTrigger(val);
     };
 
     function renderSubjects() {
