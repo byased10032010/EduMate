@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 /auth/forgot_password.php
+config/db.php
 
 # Dependencies and local tooling
 /vendor/
